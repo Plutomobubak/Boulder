@@ -1,9 +1,9 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:boulder/boulder_display.dart';
 import 'package:boulder/services/boulder_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:hive_flutter/hive_flutter.dart';
 import 'models/boulder.dart';
 import 'models/draw_point.dart';
 import 'boulder_form.dart';
@@ -11,6 +11,8 @@ import 'boulder_form.dart';
 
 
 class BoulderCreate extends StatefulWidget {
+  const BoulderCreate({super.key});
+
   @override
   _BoulderCreateState createState() => _BoulderCreateState();
 }
@@ -19,7 +21,7 @@ class _BoulderCreateState extends State<BoulderCreate> {
   File? _image;
   int? _currentType;
   final List<DrawPoint> _points = [];
-  double _circleSize = 16.0;  // default diameter
+  double _circleSize = 25.0;  // default diameter
 
 
   Future<void> _pickImage(ImageSource source) async {
@@ -36,7 +38,6 @@ class _BoulderCreateState extends State<BoulderCreate> {
   }
 
   void _onTapDown(Offset localPos, Size? imageWidgetSize) {
-    print("call2");
     if (imageWidgetSize == null || _currentType == null) return;
 
     final relative = Offset(
@@ -44,7 +45,6 @@ class _BoulderCreateState extends State<BoulderCreate> {
       localPos.dy / imageWidgetSize!.height,
     );
 
-    print(relative);
     setState(() {
       _points.add(DrawPoint(
         dx: relative.dx,
@@ -80,8 +80,8 @@ class _BoulderCreateState extends State<BoulderCreate> {
                   },
               ),
                 Slider(
-                  min: 10,
-                  max: 100,
+                  min: 15,
+                  max: 75,
                   divisions: 42,
                   value: _circleSize,
                   label: _circleSize.round().toString(),
@@ -97,7 +97,7 @@ class _BoulderCreateState extends State<BoulderCreate> {
                     decoration: BoxDecoration(
                       border: Border.all(
                         color: Colors.blue,
-                        width:_circleSize/8,
+                        width:sqrt(sqrt(_circleSize*2)),
                       ),
                       shape: BoxShape.circle,
                       color: Colors.transparent,

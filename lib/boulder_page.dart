@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 class BoulderPage extends StatefulWidget {
   final Boulder boulder;
 
-  const BoulderPage({required this.boulder, Key? key}) : super(key: key);
+  const BoulderPage({required this.boulder, super.key});
 
   @override
   _BoulderPageState createState() => _BoulderPageState();

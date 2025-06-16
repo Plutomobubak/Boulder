@@ -8,7 +8,7 @@ class BoulderSavePage extends StatefulWidget {
   final File image;
   final List<DrawPoint> points;
 
-  const BoulderSavePage({required this.image, required this.points, Key? key}) : super(key: key);
+  const BoulderSavePage({required this.image, required this.points, super.key});
 
   @override
   _BoulderSavePageState createState() => _BoulderSavePageState();

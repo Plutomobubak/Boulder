@@ -1,6 +1,7 @@
+import 'dart:math';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'models/draw_point.dart';
-import 'dart:io';
 
 Color colorForType(int type) {
   switch (type) {
@@ -15,90 +16,120 @@ Color colorForType(int type) {
   }
 }
 
+Future<Size> _getImageSize(File file) async {
+  final image = await decodeImageFromList(file.readAsBytesSync());
+  return Size(image.width.toDouble(), image.height.toDouble());
+}
+
 class BoulderDisplay extends StatefulWidget {
   final File? imageFile;
   final List<DrawPoint> points;
   final void Function(Offset localPos, Size? imageWidgetSize)? onTapDown;
 
   const BoulderDisplay({
-    Key? key,
+    super.key,
     required this.imageFile,
     required this.points,
     this.onTapDown,
-  }) : super(key: key);
+  });
 
   @override
   _BoulderDisplayState createState() => _BoulderDisplayState();
 }
 
 class _BoulderDisplayState extends State<BoulderDisplay> {
-  final GlobalKey _imageKey = GlobalKey();
-  Size? _imageSize;
-
-  void _updateImageSize() {
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final renderBox = _imageKey.currentContext?.findRenderObject() as RenderBox?;
-      if (renderBox != null && mounted) {
-        setState(() {
-          _imageSize = renderBox.size;
-        });
-      }
-    });
-  }
+  final TransformationController _controller = TransformationController();
 
   @override
   Widget build(BuildContext context) {
-    _updateImageSize();
+    return Center(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return FutureBuilder<Size>(
+            future: _getImageSize(widget.imageFile!),
+            builder: (context, snapshot) {
+              if (!snapshot.hasData) return const CircularProgressIndicator();
 
-    const referenceWidth = 300.0; // You can adjust this to your design size
-    const referenceHeight = 400.0;
+              final imageSize = snapshot.data!;
+              final containerAspect = constraints.maxWidth / constraints.maxHeight;
+              final imageAspect = imageSize.width / imageSize.height;
 
-    return _imageSize == null
-        ? Image.file(widget.imageFile!, key: _imageKey, fit: BoxFit.contain)
-        : Stack(
-      children: [
-        GestureDetector(
-          onTapDown: (details) {
-            if (widget.onTapDown != null) {
-              widget.onTapDown!(details.localPosition, _imageSize);
-            }
-          },
-          child: Image.file(
-            widget.imageFile!,
-            key: _imageKey,
-            fit: BoxFit.contain,
-            width: double.infinity,
-            height: double.infinity,
-          ),
-        ),
-        ...widget.points.map((p) {
-          final pos = Offset(
-            p.dx * _imageSize!.width,
-            p.dy * _imageSize!.height,
-          );
+              double displayWidth;
+              double displayHeight;
 
-          // Scale size relative to container size
-          final scaleFactor = (_imageSize!.width / referenceWidth + _imageSize!.height / referenceHeight) / 2;
-          final scaledSize = p.size * scaleFactor;
+              if (imageAspect > containerAspect) {
+                displayWidth = constraints.maxWidth;
+                displayHeight = displayWidth / imageAspect;
+              } else {
+                displayHeight = constraints.maxHeight;
+                displayWidth = displayHeight * imageAspect;
+              }
 
-          return Positioned(
-            left: pos.dx - scaledSize / 2,
-            top: pos.dy - scaledSize / 2,
-            child: Container(
-              width: scaledSize,
-              height: scaledSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: colorForType(p.type),
-                  width: scaledSize / 8,
+              final Size fittedSize = Size(displayWidth, displayHeight);
+
+              return ClipRect(
+                child: GestureDetector(
+                  onTapUp: (details) {
+                    final scenePoint = _controller.toScene(details.localPosition);
+                    if (widget.onTapDown != null) {
+                      widget.onTapDown!(
+                        scenePoint,
+                        fittedSize,
+                      );
+                    }
+                  },
+                  child: InteractiveViewer(
+                    transformationController: _controller,
+                    minScale: 0.5,
+                    maxScale: 5.0,
+                    child: SizedBox(
+                      width: fittedSize.width,
+                      height: fittedSize.height,
+                      child: Stack(
+                        children: [
+                          Image.file(
+                            widget.imageFile!,
+                            fit: BoxFit.fill,
+                            width: fittedSize.width,
+                            height: fittedSize.height,
+                          ),
+                          ...widget.points.map((p) {
+                            final pos = Offset(
+                              p.dx * fittedSize.width,
+                              p.dy * fittedSize.height,
+                            );
+
+                            final scaleFactor = (fittedSize.width / 300 +
+                                fittedSize.height / 400) / 2;
+                            final scaledSize = p.size * scaleFactor;
+
+                            return Positioned(
+                              left: pos.dx - scaledSize / 2,
+                              top: pos.dy - scaledSize / 2,
+                              child: Container(
+                                width: scaledSize,
+                                height: scaledSize,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: colorForType(p.type),
+                                    width: sqrt(sqrt(scaledSize * 2)),
+                                  ),
+                                  color: Colors.transparent,
+                                ),
+                              ),
+                            );
+                          }),
+                        ],
+                      ),
+                    ),
+                  ),
                 ),
-                color: Colors.transparent,
-              ),
-            ),
+              );
+            },
           );
-        }).toList(),
-      ],
+        },
+      ),
     );
   }
 }

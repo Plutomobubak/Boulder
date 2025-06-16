@@ -7,6 +7,8 @@ import 'models/boulder.dart';
 import 'dart:io';
 
 class MainPage extends StatefulWidget {
+  const MainPage({super.key});
+
   @override
   _MainPageState createState() => _MainPageState();
 }
@@ -100,15 +102,15 @@ class _MainPageState extends State<MainPage> {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          boulder.comment.isNotEmpty
-                              ? Text(
-                                  'Comment: ${boulder.location}',
+                          if(boulder.comment.isNotEmpty)
+                              Text(
+                                  'Comment: ${boulder.comment}',
                                   style: const TextStyle(
                                     fontSize: 16,
                                     color: Colors.grey,
                                   ),
                                 )
-                              : SizedBox(height: 8),
+                              ,
                           // Optional: add more info or tags here
                         ],
                       ),
@@ -128,8 +130,8 @@ class _MainPageState extends State<MainPage> {
           );
           _loadBoulders();
         },
-        child: Icon(Icons.add),
         tooltip: 'Add Item',
+        child: Icon(Icons.add),
       ),
     );
   }
