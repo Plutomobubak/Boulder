@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 
 import 'dart:io';
-import 'models/boulder.dart';
-import 'models/draw_point.dart';
+import '../models/boulder.dart';
+import '../models/draw_point.dart';
+import '../utils/grades.dart';
+
+Map<String, int> get selectedScale => VScale;
 
 class BoulderSavePage extends StatefulWidget {
   final File image;
@@ -17,7 +21,7 @@ class BoulderSavePage extends StatefulWidget {
 class _BoulderSavePageState extends State<BoulderSavePage> {
   final _formKey = GlobalKey<FormState>();
   String _name = '';
-  String _grade = '';
+  int _grade = 0;
   String _location = '';
   String _comment = '';
 
@@ -36,10 +40,20 @@ class _BoulderSavePageState extends State<BoulderSavePage> {
                 onSaved: (val) => _name = val ?? '',
                 validator: (val) => (val == null || val.isEmpty) ? 'Enter a name' : null,
               ),
-              TextFormField(
+              DropdownButtonFormField<String>(
                 decoration: InputDecoration(labelText: 'Grade'),
-                onSaved: (val) => _grade = val ?? '',
+                items: selectedScale.keys.map((grade) {
+                  return DropdownMenuItem<String>(
+                    value: grade,
+                    child: Text(grade),
+                  );
+                }).toList(),
+                onSaved: (val) {
+                  // Save the corresponding int value from the selected scale
+                  _grade = val != null ? selectedScale[val]! : -1;
+                },
                 validator: (val) => (val == null || val.isEmpty) ? 'Enter a grade' : null,
+                onChanged: (String? value) {  },
               ),
               TextFormField(
                 decoration: InputDecoration(labelText: 'Location'),
@@ -58,7 +72,8 @@ class _BoulderSavePageState extends State<BoulderSavePage> {
                   if (_formKey.currentState!.validate()) {
                     _formKey.currentState!.save();
 
-
+                    final authBox = Hive.box('auth');
+                    final savedUsername = authBox.get('username');
                     final boulder = Boulder(
                       imagePath: widget.image.path,
                       points: widget.points,
@@ -66,6 +81,7 @@ class _BoulderSavePageState extends State<BoulderSavePage> {
                       grade: _grade,
                       location: _location,
                       comment: _comment,
+                      author: savedUsername,
                     );
 
 

@@ -1,7 +1,9 @@
 import 'dart:math';
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'models/draw_point.dart';
+import 'package:flutter/foundation.dart';
+import 'package:http/http.dart' as http;
+import '../models/draw_point.dart';
 
 Color colorForType(int type) {
   switch (type) {
@@ -16,22 +18,36 @@ Color colorForType(int type) {
   }
 }
 
-Future<Size> _getImageSize(File file) async {
-  final image = await decodeImageFromList(file.readAsBytesSync());
+// Helper to get image size from File or network bytes
+Future<Size> _getImageSizeFromFile(File file) async {
+  final image = await decodeImageFromList(await file.readAsBytes());
   return Size(image.width.toDouble(), image.height.toDouble());
+}
+
+Future<Size> _getImageSizeFromUrl(String url) async {
+  final response = await http.get(Uri.parse(url));
+  if (response.statusCode == 200) {
+    final bytes = response.bodyBytes;
+    final image = await decodeImageFromList(bytes);
+    return Size(image.width.toDouble(), image.height.toDouble());
+  } else {
+    throw Exception('Failed to load image from url');
+  }
 }
 
 class BoulderDisplay extends StatefulWidget {
   final File? imageFile;
+  final String? imageUrl; // NEW: accept URL string
   final List<DrawPoint> points;
   final void Function(Offset localPos, Size? imageWidgetSize)? onTapDown;
 
   const BoulderDisplay({
     super.key,
-    required this.imageFile,
+    this.imageFile,
+    this.imageUrl,
     required this.points,
     this.onTapDown,
-  });
+  }) : assert(imageFile != null || imageUrl != null, 'Either imageFile or imageUrl must be provided');
 
   @override
   _BoulderDisplayState createState() => _BoulderDisplayState();
@@ -40,13 +56,26 @@ class BoulderDisplay extends StatefulWidget {
 class _BoulderDisplayState extends State<BoulderDisplay> {
   final TransformationController _controller = TransformationController();
 
+  late Future<Size> _imageSizeFuture;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (widget.imageFile != null) {
+      _imageSizeFuture = _getImageSizeFromFile(widget.imageFile!);
+    } else if (widget.imageUrl != null) {
+      _imageSizeFuture = _getImageSizeFromUrl(widget.imageUrl!);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Center(
       child: LayoutBuilder(
         builder: (context, constraints) {
           return FutureBuilder<Size>(
-            future: _getImageSize(widget.imageFile!),
+            future: _imageSizeFuture,
             builder: (context, snapshot) {
               if (!snapshot.hasData) return const CircularProgressIndicator();
 
@@ -87,8 +116,15 @@ class _BoulderDisplayState extends State<BoulderDisplay> {
                       height: fittedSize.height,
                       child: Stack(
                         children: [
-                          Image.file(
+                          widget.imageFile != null
+                              ? Image.file(
                             widget.imageFile!,
+                            fit: BoxFit.fill,
+                            width: fittedSize.width,
+                            height: fittedSize.height,
+                          )
+                              : Image.network(
+                            widget.imageUrl!,
                             fit: BoxFit.fill,
                             width: fittedSize.width,
                             height: fittedSize.height,
@@ -99,8 +135,7 @@ class _BoulderDisplayState extends State<BoulderDisplay> {
                               p.dy * fittedSize.height,
                             );
 
-                            final scaleFactor = (fittedSize.width / 300 +
-                                fittedSize.height / 400) / 2;
+                            final scaleFactor = (fittedSize.width / 300 + fittedSize.height / 400) / 2;
                             final scaledSize = p.size * scaleFactor;
 
                             return Positioned(

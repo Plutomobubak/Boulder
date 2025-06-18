@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'models/boulder.dart';
 import 'models/draw_point.dart';
+import 'utils/auth_screen.dart';
 import 'package:flutter/services.dart';
 
 
@@ -15,17 +16,18 @@ void main() async{
   Hive.registerAdapter(DrawPointAdapter());
 
   await Hive.openBox<Boulder>('boulders');
+  await Hive.openBox('auth');
 
   // Lock to portrait mode only
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
-  runApp(const MyApp());
+  runApp(const App());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class App extends StatelessWidget {
+  const App({super.key});
 
   // This widget is the root of your application.
   @override

@@ -1,11 +1,11 @@
 import 'dart:io';
 import 'dart:math';
-import 'package:boulder/boulder_display.dart';
+import 'package:boulder/boulder/boulder_display.dart';
 import 'package:boulder/services/boulder_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
-import 'models/boulder.dart';
-import 'models/draw_point.dart';
+import '../models/boulder.dart';
+import '../models/draw_point.dart';
 import 'boulder_form.dart';
 
 

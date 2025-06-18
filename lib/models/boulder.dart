@@ -15,13 +15,16 @@ class Boulder extends HiveObject {
   String name;
 
   @HiveField(3)
-  String grade;
+  int grade;
 
   @HiveField(4)
   String location;
 
   @HiveField(5)
   String comment;
+
+  @HiveField(6)
+  String author;
 
   Boulder({
     required this.imagePath,
@@ -30,6 +33,7 @@ class Boulder extends HiveObject {
     required this.grade,
     required this.location,
     required this.comment,
+    required this.author,
   });
 }
 

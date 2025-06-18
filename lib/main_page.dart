@@ -1,137 +1,64 @@
-import 'package:boulder/boulder_creator.dart';
-import 'package:boulder/boulder_display.dart';
 import 'package:flutter/material.dart';
-import 'package:hive_flutter/hive_flutter.dart';
-import 'boulder_page.dart';
-import 'models/boulder.dart';
-import 'dart:io';
+import 'my_boulders.dart';
+import 'discover_page.dart';
+import 'guides_page.dart';
+import 'profile_page.dart';
 
 class MainPage extends StatefulWidget {
   const MainPage({super.key});
 
   @override
-  _MainPageState createState() => _MainPageState();
+  State<MainPage> createState() => _MainPageState();
 }
 
 class _MainPageState extends State<MainPage> {
-  List<Boulder> boulders = [];
+  int _currentIndex = 0;
 
-  @override
-  void initState() {
-    super.initState();
-    // Load boulders after widget is initialized
-    _loadBoulders();
-  }
+  final List<Widget> _pages = const [
+    MyBoulders(),
+    DiscoverPage(),
+    GuidesPage(),
+    ProfilePage(),
+  ];
 
-  void _loadBoulders() {
-    var box = Hive.box<Boulder>('boulders');
-    setState(() {
-      boulders = box.values.toList();
-    });
-  }
+  final List<String> _titles = [
+    'My Boulders',
+    'Discover',
+    'Guides',
+    'Profile',
+  ];
 
   @override
   Widget build(BuildContext context) {
-
     return Scaffold(
-      appBar: AppBar(title: Text('Boulders')),
-      body: ListView.builder(
-        itemCount: boulders.length,
-        itemBuilder: (_, index) {
-          final boulder = boulders[index];
-          return Card(
-            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            elevation: 4,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(12), // match Card's radius
-              onTap: () async{
-                await Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => BoulderPage(boulder: boulder,)),
-                );
-                _loadBoulders();
-              },
-              child: Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Image on the left
-                    SizedBox(
-                      width: 180,
-                      height: 240,
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: BoulderDisplay(
-                          imageFile: File(boulder.imagePath),
-                          points: boulder.points,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 16),
-
-                    // Text on the right
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            boulder.name,
-                            style: const TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Grade: ${boulder.grade}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            'Location: ${boulder.location}',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          if(boulder.comment.isNotEmpty)
-                              Text(
-                                  'Comment: ${boulder.comment}',
-                                  style: const TextStyle(
-                                    fontSize: 16,
-                                    color: Colors.grey,
-                                  ),
-                                )
-                              ,
-                          // Optional: add more info or tags here
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          );
+      appBar: AppBar(title: Text(_titles[_currentIndex])),
+      body: _pages[_currentIndex],
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentIndex,
+        onTap: (int newIndex) {
+          setState(() {
+            _currentIndex = newIndex;
+          });
         },
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () async{
-          await Navigator.push(
-            context,
-            MaterialPageRoute(builder: (context) => BoulderCreate()),
-          );
-          _loadBoulders();
-        },
-        tooltip: 'Add Item',
-        child: Icon(Icons.add),
+        type: BottomNavigationBarType.fixed,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.landscape),
+            label: 'My Boulders',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.explore),
+            label: 'Discover',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.menu_book),
+            label: 'Guides',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
