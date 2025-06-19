@@ -9,6 +9,7 @@ import 'boulder/boulder_card.dart';
 import 'boulder/boulder_display.dart';
 import 'models/boulder.dart';
 import 'models/draw_point.dart';
+import 'utils/consts.dart';
 
 
 Future<File> urlToFile(String imageUrl) async {
@@ -54,8 +55,6 @@ class _DiscoverPageState extends State<DiscoverPage> {
   bool loading = false;
   String? error;
 
-  // Use correct backend URL here:
-  final String apiUrl = 'http://10.0.2.2:8000/search';
 
   Future<void> search() async {
     setState(() {
@@ -71,7 +70,7 @@ class _DiscoverPageState extends State<DiscoverPage> {
       if (username != null && username!.isNotEmpty) queryParams['username'] = username!;
       if (grade != null) queryParams['grade'] = grade.toString();
 
-      final uri = Uri.parse(apiUrl).replace(queryParameters: queryParams);
+      final uri = Uri.parse(apiUrl + "search").replace(queryParameters: queryParams);
 
       final response = await http.get(uri);
 
