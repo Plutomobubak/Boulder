@@ -1,3 +1,33 @@
+import 'package:boulder/services/settings_sys.dart';
+
+Future<Map<String, int>> getScale() async {
+  final selectedScale = await Settings.get("gradeSystem", "V-Scale");
+  switch (selectedScale) {
+    case 'V-Scale':
+      return VScale;
+    case 'Yosemite':
+      return YosemiteScale;
+    case 'French':
+      return FrenchScale;
+    default:
+      return VScale;
+  }
+}
+
+Future<Map<int, String>> getReverseScale() async {
+  final selectedScale = await Settings.get("gradeSystem", "V-Scale");
+  switch (selectedScale) {
+    case 'V-Scale':
+      return ReverseVScale;
+    case 'Yosemite':
+      return ReverseYosemiteScale;
+    case 'French':
+      return ReverseFrenchScale;
+    default:
+      return ReverseVScale;
+  }
+}
+
 final Map<String, int> VScale = {
   'V0': 1,
   'V1': 4,
@@ -18,6 +48,7 @@ final Map<String, int> VScale = {
   'V16': 24,
 };
 final Map<int, String> ReverseVScale = {
+  0: 'V0',
   1: 'V0',
   2: 'V0',
   3: 'V1',

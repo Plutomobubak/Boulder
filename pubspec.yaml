@@ -21,6 +21,9 @@ dependencies:
   path_provider: ^2.0.11
   connectivity_plus: ^4.0.1
   jwt_decoder: ^2.0.1
+  intl: ^0.20.2
+  url_launcher: ^6.1.7
+  font_awesome_flutter: ^10.4.0
 
   cupertino_icons: ^1.0.8
 

@@ -1,10 +1,13 @@
 import 'dart:io';
+import 'package:intl/intl.dart';
 
+import 'package:boulder/utils/grades.dart';
 import 'package:flutter/material.dart';
 import 'boulder_display.dart';  // Adjust the import according to your project structure
 import 'boulder_page.dart';     // Your page to navigate on tap
 
-class BoulderCard extends StatelessWidget {
+
+class BoulderCard extends StatefulWidget {
   final dynamic boulder;
   final VoidCallback onReload;
 
@@ -15,7 +18,28 @@ class BoulderCard extends StatelessWidget {
   }) : super(key: key);
 
   @override
+  State<BoulderCard> createState() => _BoulderCardState();
+}
+
+class _BoulderCardState extends State<BoulderCard> {
+  Map<int, String>? reverseScale;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadReverseScale();
+  }
+
+  Future<void> _loadReverseScale() async {
+    final scale = await getReverseScale();
+    setState(() {
+      reverseScale = scale;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final boulder = widget.boulder;
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       elevation: 4,
@@ -29,7 +53,7 @@ class BoulderCard extends StatelessWidget {
             context,
             MaterialPageRoute(builder: (context) => BoulderPage(boulder: boulder)),
           );
-          onReload();
+          widget.onReload();
         },
         child: Padding(
           padding: const EdgeInsets.all(12.0),
@@ -70,7 +94,7 @@ class BoulderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Grade: ${boulder.grade}',
+                      'Diff ${reverseScale?[boulder.grade]}',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
@@ -78,7 +102,15 @@ class BoulderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Location: ${boulder.location}',
+                      'At ${boulder.location}',
+                      style: const TextStyle(
+                        fontSize: 16,
+                        color: Colors.grey,
+                      ),
+                    ),
+                    if(boulder.isOwn)const SizedBox(height: 8),
+                    Text(
+                      'By ${boulder.isOwn?"You":boulder.author}',
                       style: const TextStyle(
                         fontSize: 16,
                         color: Colors.grey,
@@ -86,19 +118,20 @@ class BoulderCard extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Author: ${boulder.author}',
+                      'On ${DateFormat.yMMMd().add_jm().format(boulder.created_at)}',
                       style: const TextStyle(
-                        fontSize: 16,
+                        fontSize: 14,
                         color: Colors.grey,
                       ),
                     ),
                     const SizedBox(height: 8),
                     if (boulder.comment.isNotEmpty)
                       Text(
-                        'Comment: ${boulder.comment}',
+                        '${boulder.comment}',
                         style: const TextStyle(
-                          fontSize: 16,
+                          fontSize: 13,
                           color: Colors.grey,
+                          fontStyle: FontStyle.italic,
                         ),
                       ),
                   ],

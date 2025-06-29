@@ -1,1 +1,1 @@
-  final String apiUrl = 'http://10.0.2.2:8000/';
+  final String apiUrl = 'https://dogs-races-regions-framework.trycloudflare.com';

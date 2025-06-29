@@ -26,6 +26,12 @@ class Boulder extends HiveObject {
   @HiveField(6)
   String author;
 
+  @HiveField(7)
+  bool isOwn;
+
+  @HiveField(8)
+  DateTime created_at;
+
   Boulder({
     required this.imagePath,
     required this.points,
@@ -34,7 +40,7 @@ class Boulder extends HiveObject {
     required this.location,
     required this.comment,
     required this.author,
+    required this.isOwn,
+    required this.created_at,  // new field added here
   });
 }
-
-

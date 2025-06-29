@@ -197,7 +197,7 @@ class _BoulderCreateState extends State<BoulderCreate> {
                       final Boulder? boulder = await Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (context) => BoulderSavePage(
+                          builder: (context) => BoulderEditPage(
                             image: _image!,
                             points: List.from(_points), // pass current points
                           ),

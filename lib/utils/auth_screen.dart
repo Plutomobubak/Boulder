@@ -1,8 +1,11 @@
-import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:hive/hive.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+
 import 'package:boulder/main_page.dart';
+import 'package:boulder/services/auth.dart';
 
 class AuthScreen extends StatefulWidget {
   const AuthScreen({super.key});
@@ -17,11 +20,10 @@ class _AuthScreenState extends State<AuthScreen> {
   bool _isLogin = true;
   bool _loading = false;
 
-  final String baseUrl = "http://10.0.2.2:8000"; // use correct IP/domain
+  final AuthService _authService = AuthService();
 
   void _submit() async {
     setState(() => _loading = true);
-    final authBox = Hive.box('auth');
 
     try {
       final String username = _usernameController.text.trim();
@@ -30,63 +32,52 @@ class _AuthScreenState extends State<AuthScreen> {
       http.Response response;
 
       if (_isLogin) {
-        // === LOGIN ===
-        final url = Uri.parse("$baseUrl/token");
-        response = await http.post(
-          url,
-          headers: {"Content-Type": "application/x-www-form-urlencoded"},
-          body: {
-            'username': username,
-            'password': password,
-          },
-        );
+        response = await _authService.login(username, password);
       } else {
-        // === REGISTER ===
-        final url = Uri.parse("$baseUrl/register");
-        response = await http.post(
-          url,
-          headers: {"Content-Type": "application/json"},
-          body: jsonEncode({'username': username, 'password': password}),
-        );
+        response = await _authService.register(username, password);
 
-        // If register succeeded, login user immediately
         if (response.statusCode == 200) {
-          final loginUrl = Uri.parse("$baseUrl/token");
-          response = await http.post(
-            loginUrl,
-            headers: {"Content-Type": "application/x-www-form-urlencoded"},
-            body: {'username': username, 'password': password},
-          );
+          // Register succeeded → login immediately
+          response = await _authService.login(username, password);
         }
       }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
         final token = data['access_token'];
-        final refresh_token = data['refresh_token'];
+        final refreshToken = data['refresh_token'];
 
-        await authBox.put('token', token);
-        await authBox.put('refresh_token', refresh_token);
-        await authBox.put('username', _usernameController.text);
+        await _authService.saveTokens(token, refreshToken, username);
 
-        if (context.mounted) {
+        if (mounted) {
           Navigator.pushReplacement(
             context,
             MaterialPageRoute(builder: (_) => const MainPage()),
           );
         }
+      } else if (response.statusCode == 401) {
+        _showError("❌ Incorrect username or password.");
+      } else if (response.statusCode == 400) {
+        _showError("❌ Invalid request. Please check your input.");
       } else {
-        _showError("Error: ${response.body}");
+        _showError("❌ Server error: ${response.statusCode}\n${response.body}");
       }
+    } on SocketException {
+      _showError("🚫 Cannot connect to server. Please check your internet connection.");
     } catch (e) {
-      _showError("Something went wrong: $e");
+      _showError("❌ Unexpected error: $e");
+    } finally {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
-
-    setState(() => _loading = false);
   }
 
   void _showError(String msg) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(msg)),
+    );
   }
 
   @override

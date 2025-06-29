@@ -8,6 +8,16 @@ class BoulderStorage {
     await _box.add(boulder);
   }
 
+  static Future<void> updateBoulder(String formerName,Boulder boulder) async {
+    final key = _box.keys.firstWhere(
+          (k) => _box.get(k)?.name == formerName,
+      orElse: () => null,
+    );
+    if (key != null) {
+      await _box.put(key, boulder);
+    }
+  }
+
   static Future<void> deleteBoulder(Boulder boulder) async {
     await boulder.delete(); // assuming it's HiveObject
   }

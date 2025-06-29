@@ -17,6 +17,7 @@ void main() async{
 
   await Hive.openBox<Boulder>('boulders');
   await Hive.openBox('auth');
+  await Hive.openBox('settings');
 
   // Lock to portrait mode only
   await SystemChrome.setPreferredOrientations([
@@ -29,17 +30,26 @@ void main() async{
 class App extends StatelessWidget {
   const App({super.key});
 
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
+    return ValueListenableBuilder(
+      valueListenable: Hive.box('settings').listenable(),
+      builder: (context, Box box, _) {
+        final bool isDarkMode = !box.get('lightMode', defaultValue: false);
 
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: MainPage(),
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'Boulder App',
+          theme: isDarkMode
+              ? ThemeData.dark()
+              : ThemeData(
+            colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+          ),
+          home: MainPage(), // or whatever your main page is
+        );
+      },
     );
   }
 }
+
 

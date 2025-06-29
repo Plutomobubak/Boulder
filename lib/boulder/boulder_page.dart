@@ -8,6 +8,9 @@ import 'package:http/http.dart' as http;
 import 'package:http_parser/http_parser.dart';
 import '../models/boulder.dart';
 import 'package:flutter/material.dart';
+import 'package:boulder/utils/consts.dart';
+
+import 'boulder_form.dart';
 
 class BoulderPage extends StatefulWidget {
   final Boulder boulder;
@@ -20,46 +23,91 @@ class BoulderPage extends StatefulWidget {
 
 class _BoulderPageState extends State<BoulderPage> {
   final _formKey = GlobalKey<FormState>();
+  bool _isPublishing = false;
 
   Future<void> _publishBoulder() async {
-    final uri = Uri.parse('http://10.0.2.2:8000/publish'); // Replace with your actual endpoint
-    final boulder = widget.boulder;
-    final authBox = Hive.box('auth');
+    if (_isPublishing) return; // Prevent double tap
 
+    setState(() {
+      _isPublishing = true;
+    });
+
+    final authBox = Hive.box('auth');
     final token = authBox.get('token');
 
-    final request = http.MultipartRequest('POST', uri)
-      ..headers['Authorization'] = 'Bearer $token'
-      ..fields['name'] = boulder.name
-      ..fields['grade'] = boulder.grade.toString()
-      ..fields['location'] = boulder.location
-      ..fields['comment'] = boulder.comment
-      ..fields['points'] = jsonEncode(boulder.points.map((point) => {
-        'dx': point.dx,
-        'dy': point.dy,
-        'type': point.type,
-        'size': point.size,
-      }).toList());
-
-    request.files.add(await http.MultipartFile.fromPath(
-      'file',
-      boulder.imagePath,
-      contentType: MediaType('image', 'jpeg'), // or 'png' based on your usage
-    ));
-
-    final response = await request.send();
-
-    if (response.statusCode == 200) {
+    if (token == null || token.isEmpty) {
+      setState(() {
+        _isPublishing = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Boulder published successfully!')),
+        const SnackBar(content: Text('⚠️ You must log in to publish.')),
       );
-    } else {
-      final body = await response.stream.bytesToString();
+      return;
+    }
+
+    final boulder = widget.boulder;
+    final uri = Uri.parse('$apiUrl/publish');
+
+    try {
+      final request = http.MultipartRequest('POST', uri)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['name'] = boulder.name
+        ..fields['grade'] = boulder.grade.toString()
+        ..fields['location'] = boulder.location
+        ..fields['comment'] = boulder.comment
+        ..fields['created_at'] = boulder.created_at.toIso8601String()
+        ..fields['points'] = jsonEncode(
+          boulder.points.map((point) => {
+            'dx': point.dx,
+            'dy': point.dy,
+            'type': point.type,
+            'size': point.size,
+          }).toList(),
+        );
+
+      request.files.add(await http.MultipartFile.fromPath(
+        'file',
+        boulder.imagePath,
+        contentType: MediaType('image', 'jpeg'),
+      ));
+
+      final response = await request.send();
+
+      setState(() {
+        _isPublishing = false;
+      });
+
+      if (response.statusCode == 200) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('✅ Boulder published successfully!')),
+        );
+      } else {
+        final body = await response.stream.bytesToString();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              '❌ Failed to publish (${response.statusCode}):\n$body',
+            ),
+          ),
+        );
+      }
+    } on SocketException {
+      setState(() {
+        _isPublishing = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to publish: ${response.statusCode}\n$body')),
+        const SnackBar(content: Text('🚫 Cannot connect to server. Please check your internet connection.')),
+      );
+    } catch (e) {
+      setState(() {
+        _isPublishing = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('❌ Unexpected error: $e')),
       );
     }
   }
+
 
   @override
   Widget build(BuildContext context) {
@@ -73,10 +121,45 @@ class _BoulderPageState extends State<BoulderPage> {
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
+          if(boulder.isOwn)
           IconButton(
+            onPressed: () async {
+              // Navigate to your edit screen
+              final Boulder? editedBoulder = await
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => BoulderEditPage.fromBoulder(boulder),
+                ),
+              );
+
+              if (editedBoulder != null) {
+                await BoulderStorage.updateBoulder(boulder.name,editedBoulder);
+                // Optionally reset UI:
+                Navigator.pop(context);
+              }
+            },
+            icon: Icon(Icons.edit),
+          ),
+          if(boulder.isOwn)
+          // Publish Button or Loading Indicator
+          _isPublishing
+              ? Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Center(
+              child: SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          )
+              : IconButton(
             onPressed: _publishBoulder,
             icon: Icon(Icons.share),
           ),
+          // Delete Button
           IconButton(
             icon: Icon(Icons.delete, color: Colors.redAccent),
             onPressed: () {
